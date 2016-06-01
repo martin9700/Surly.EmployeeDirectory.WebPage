@@ -43,10 +43,19 @@
     SearchOU                    FQDN values of the OU's you want the script to search for
                                 eligible users to display.  If your FQDN contains a comma
                                 you must surround it with double quotes (no single quotes).
-                                IE: "OU=MyCompany,DC=MyDomain,DC=local"
+                                IE: SearchOU="OU=MyCompany,DC=MyDomain,DC=local"
                                 This is a search parameter, so exact matches are not necessary.
                                 The same example above could be done with:
-                                OU=MyCompany
+                                SearchOU=OU=MyCompany
+
+                                If you have multiple domains you can specify the FQDN of the 
+                                domain, a colon and then the OU's:
+                                SearchOU=DC=SurlyAdmin,DC=Com:OU=MyCompany,OU=Accounting
+
+                                Additionally, you can specify multiple domains with their own
+                                unique OU searches:
+                                SearchOU=DC=SurlyAdmin,DC=Com:OU=MyCompany,OU=Accounting
+                                SearchOU=DC=Contoso,DC=Com:OU=Finance,OU=Manufacturing
     DefaultLocation             One to one match with SearchOU. Give the OU's you searched on
                                 above a default name that's friendly for display.  So instead
                                 of having a field on your Employee Directory that reads:

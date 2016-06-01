@@ -339,14 +339,14 @@ Function Convert-CSVData
 If ($Path)
 {   If (-not (Test-Path $Path -PathType Container))
     {   Write-Verbose "$(Get-Date): $Path doesn't exist, defaulting to script location"
-        $HTMLPath = Split-Path (Get-PSCallStack)[0].ScriptName
+        $HTMLPath = Split-Path $MyInvocation.MyCommand.Path
     }
     Else
     {   $HTMLPath = $Path
     }
 }
 Else
-{   $HTMLPath = Split-Path (Get-PSCallStack)[0].ScriptName
+{   $HTMLPath = Split-Path $MyInvocation.MyCommand.Path
 }
 $Today = Get-Date -Format MMddyyyyhhmm
 
@@ -380,13 +380,28 @@ ButtonBy=Location
 
 $edini = Get-Content $HTMLPath\ed.ini
 $Title = ($edini | Select-String "HTMLTitle").Line.SubString(10)
-$SearchOU = Convert-CSVData -CSV (($edini | Select-String "SearchOU").Line.SubString(9))
+$SearchOU = ($edini | Select-String "SearchOU").Line.SubString(9)
 $LocationDefault = Convert-CSVData -CSV (($edini | Select-String "DefaultLocation").Line.SubString(16))
 $OutputPath = ($edini | Select-String "OutputPath").Line.SubString(11)
 $Fields = Convert-CSVData -CSV (($edini | Select-String "UseFields").Line.SubString(10))
 $SortBy = ($edini | Select-String "SortBy").Line.SubString(7)
 $ButtonBy = ($edini | Select-String "ButtonBy").Line.SubString(9)
 $ImagesPath = "$OutputPath\images"
+
+#Process SearchOU
+$Domains = @{}
+ForEach ($Line in $SearchOU)
+{
+    If ($Line -like "*:*")
+    {
+        $Info = $Line.Split(":")
+        $Domains.Add($Info[0],(Convert-CSVData -CSV $Info[1]))
+    }
+    Else
+    {
+        $Domains.Add("",(Convert-CSVData -CSV $Line))
+    }
+}
 
 
 If (-not (Test-Path $OutputPath -PathType Container))
@@ -443,9 +458,10 @@ If ($SortBy -notmatch $Regex)
 }
 
 #Change the Search parameter to Regex
-$SearchRegexOU = $SearchOU -join "|"
-$SearchRegexOU = $SearchRegexOU.Replace("/","\/")  #Escape some likely characters
-$SearchRegexOU = $SearchRegexOU.Replace(".","\.")
+[string[]]$Temp = $Domains.Keys
+$SearchRegexDomain = $Temp -join "|"
+$SearchRegexDomain = $SearchRegexDomain.Replace("/","\/")  #Escape some likely characters
+$SearchRegexDomain = $SearchRegexDomain.Replace(".","\.")
 
 Write-Verbose "$(Get-Date):      Search: $SearchRegexOU"
 Write-Verbose "$(Get-Date): Output Path: $OutputPath"
@@ -614,22 +630,47 @@ $FooterHTML = @"
 
 #Get User Information load it into an object for later
 Write-Verbose "$(Get-Date): Gathering data from Active Directory"
-$Domain = New-Object System.DirectoryServices.DirectoryEntry("")
-$ADSearch = New-Object System.DirectoryServices.DirectorySearcher
-$ADSearch.SearchRoot = $Domain
-$ADSearch.SearchScope = "Subtree"
-$ADSearch.Filter = "(objectCategory=User)"
-$PropertiesToLoad = "SamAccountName,useraccountcontrol,distinguishedname,GivenName,sn,Title,description,department,physicaldeliveryofficename,manager,TelephoneNumber,Mobile,facsimiletelephonenumber,mail,thumbnailphoto,wwwhomepage,description"
-ForEach ($Property in $($PropertiesToLoad.Split(",")))
-{	$ADSearch.PropertiesToLoad.Add($Property) | Out-Null
+$Users = ForEach ($Key in $Domains.Keys)
+{
+    If ($Key)
+    {
+        $GC = "GC://$Key"
+    }
+    Else
+    {
+        $GC = ""
+    }
+    $ADSearch = New-Object System.DirectoryServices.DirectorySearcher
+    $ADSearch.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry($GC)
+    $ADSearch.SearchScope = "Subtree"
+    $ADSearch.Filter = "(objectCategory=User)"
+    $PropertiesToLoad = "SamAccountName,useraccountcontrol,distinguishedname,GivenName,sn,Title,description,department,physicaldeliveryofficename,manager,TelephoneNumber,Mobile,facsimiletelephonenumber,mail,thumbnailphoto,wwwhomepage,description"
+    ForEach ($Property in $($PropertiesToLoad.Split(",")))
+    {	$ADSearch.PropertiesToLoad.Add($Property) | Out-Null
+    }
+    $ADSearch.FindAll()
 }
-$Users = $ADSearch.FindAll()
 
 $Data = @{}
 ForEach ($User in $Users)
 {	#Filter out users who don't fall within the search parameters
-    If ($($User.Properties.distinguishedname) -notmatch $SearchRegexOU)
-    {   Continue
+    $Found = $false
+    ForEach ($Key in $Domains.Keys)
+    {
+        $SearchRegexOU = $Domains[$Key] -join "|"
+        $SearchRegexOU = $SearchRegexOU.Replace("/","\/")  #Escape some likely characters
+        $SearchRegexOU = $SearchRegexOU.Replace(".","\.")
+
+        If ($($User.Properties.distinguishedname) -match $SearchRegexDomain -and $($User.Properties.distinguishedname) -match $SearchRegexOU)
+        {   
+            $Found = $true
+            Break
+        }
+    }
+
+    If (-not $Found)
+    {
+        Continue
     }
 
     #Filter out users with the word 'Exclude' in the department field
@@ -733,7 +774,7 @@ $HeadHTML = $HeaderHTML + $CSSHTML + $EndHeaderHTML + $JSHTML
 $FullHTML = $HeadHTML + $HeadingHTML + $ButtonHTML  + $SearchHTML + $GridHTML + $FooterHTML
 Write-Verbose "$(Get-Date): Saving HTML: $OutputPath\EmployeeDirectory.html"
 $FullHTML | Out-File $OutputPath\EmployeeDirectory.html
-& $OutputPath\EmployeeDirectory.html                             #Un-remark if you wish to have the page displayed automatically in your browser
+#& $OutputPath\EmployeeDirectory.html                             #Un-remark if you wish to have the page displayed automatically in your browser
 Write-Verbose "$(Get-Date): Script completed"
 
 Stop-Transcript

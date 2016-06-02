@@ -432,7 +432,7 @@ Else
 
 #Verify all field entries are good
 $Regex = "Picture|LastName|FirstName|LNLink|LNLinkPic|FNLink|FNLinkPic|Ext|Department|Title|Fax|Email|Location|Link|Cell|Manager|Description"
-ForEach ($Field in $Fields.Split(","))
+ForEach ($Field in $Fields)
 {   If ($Field -notmatch $Regex)
     {   Write-Error "Field: $Field, is not a valid field"
         Exit
@@ -440,13 +440,12 @@ ForEach ($Field in $Fields.Split(","))
 }
 
 #Determine Filter Column
-If (-not ($ButtonBy -match "Department|Location|Manager"))
-{   Write-Error "ButtonBy must be either Department, Location or Manager.  Set to: $ButtonBy"
-    Exit
+If ($ButtonBy -notmatch "Department|Location|Manager")
+{   Write-Error "ButtonBy must be either Department, Location or Manager.  Set to: $ButtonBy" -ErrorAction Stop
 }
 Else
 {   $FilterColumn = 0
-    ForEach ($Column in $Fields.Split(","))
+    ForEach ($Column in $Fields)
     {   If ($Column -eq $ButtonBy)
         {   $Found = $true
             Break
@@ -454,8 +453,7 @@ Else
         $FilterColumn ++
     }
     If (-not $Found)
-    {   Write-Error "ButtonBy parameter does not match a specified field"
-        Exit
+    {   Write-Error "ButtonBy parameter does not match a specified field" -ErrorAction Stop
     }
 }
 

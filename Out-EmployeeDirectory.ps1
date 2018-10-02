@@ -176,8 +176,9 @@ Function Set-Grid {
         {   
             Switch -regex ($Line)
             {   "<td>\[image\](.*?)<\/td>"
-                    {   If ($Data[$Matches[1]].PicturePath)
-                        {   $Line = $Line.Replace("[image]$($Matches[1])","<a onMouseOver=""ShowPicture('div$($Data[$Matches[1]].SamAccountName)')"" onMouseOut=""HidePicture('div$($Data[$Matches[1]].SamAccountName)')""><img src="".\images\$($Data[$Matches[1]].SamAccountName).jpg"" height=64 width=64></a><div class=""styleHidePicture"" id=""div$($Data[$Matches[1]].SamAccountName)""><img src="".\images\$($Data[$Matches[1]].SamAccountName).jpg""></div>")
+                    {   $DN = ([System.Web.HttpUtility]::HtmlDecode($Matches[1]))
+		        If ($Data[$DN].PicturePath)
+                        {   $Line = $Line.Replace("[image]$($Matches[1])","<a onMouseOver=""ShowPicture('div$($Data[$DN].SamAccountName)')"" onMouseOut=""HidePicture('div$($Data[$DN].SamAccountName)')""><img src="".\images\$($Data[$DN].SamAccountName).jpg"" height=64 width=64></a><div class=""styleHidePicture"" id=""div$($Data[$DN].SamAccountName)""><img src="".\images\$($Data[$DN].SamAccountName).jpg""></div>")
                         }
                         Else
                         {   $Line = $Line.Replace("[image]$($Matches[1])","")
@@ -192,35 +193,37 @@ Function Set-Grid {
                         }
                     } #End Email
                 "<td>\[fnlinkpic\](.*?)<\/td>"
-                    {   If ($Data[$Matches[1]].FirstName)
-                        {   $FN = $Data[$Matches[1]].FirstName
+                    {   $DN = ([System.Web.HttpUtility]::HtmlDecode($Matches[1]))
+		        If ($Data[$DN].FirstName)
+                        {   $FN = $Data[$DN].FirstName
                         }
                         Else
                         {   $FN = "Link"
                         }   
-                        If ($Data[$Matches[1]].PicturePath)
-                        {   $Line = $Line.Replace("[fnlinkpic]$($Matches[1])","<a href=""$($Data[$Matches[1]].PicturePath)"">$FN</a>")
+                        If ($Data[$DN].PicturePath)
+                        {   $Line = $Line.Replace("[fnlinkpic]$($Matches[1])","<a href=""$($Data[$DN].PicturePath)"">$FN</a>")
                         }
                         Else
                         {   $Line = $Line.Replace("[fnlinkpic]$($Matches[1])",$FN.Replace("Link",""))
                         }
                     } #End FirstName Link to Pic
                 "<td>\[lnlinkpic\](.*?)<\/td>"
-                    {   If ($Data[$Matches[1]].LastName)
-                        {   $LN = $Data[$Matches[1]].LastName
+                    {   $DN = ([System.Web.HttpUtility]::HtmlDecode($Matches[1]))
+		        If ($Data[$DN].LastName)
+                        {   $LN = $Data[$DN].LastName
                         }
                         Else
                         {   $LN = "Link"
                         }
-                        If ($Data[$Matches[1]].PicturePath)
-                        {   $Line = $Line.Replace("[lnlinkpic]$($Matches[1])","<a href=""$($Data[$Matches[1]].PicturePath)"">$LN</a>")
+                        If ($Data[$DN].PicturePath)
+                        {   $Line = $Line.Replace("[lnlinkpic]$($Matches[1])","<a href=""$($Data[$DN].PicturePath)"">$LN</a>")
                         }
                         Else
                         {   $Line = $Line.Replace("[lnlinkpic]$($Matches[1])",$LN.Replace("Link",""))
                         }
                     } #End LastName Link to Pic
                 "<td>\[fnlink\](.*?)<\/td>"
-                    {   $DN = $Matches[1]
+                    {   $DN = ([System.Web.HttpUtility]::HtmlDecode($Matches[1]))
                         If ($Data[$DN].FirstName)
                         {   $FN = $Data[$DN].FirstName
                         }
@@ -236,7 +239,7 @@ Function Set-Grid {
                         } #End If
                     } #End FirstName Link to Home Page
                 "<td>\[lnlink\](.*?)<\/td>"
-                    {   $DN = $Matches[1]
+                    {   $DN = ([System.Web.HttpUtility]::HtmlDecode($Matches[1]))
                         If ($Data[$DN].LastName)
                         {   $LN = $Data[$DN].LastName
                         }
@@ -252,7 +255,7 @@ Function Set-Grid {
                         } #End If
                     } #End LastName Link to Home Page
                 "<td>\[link\](.*?)<\/td>"
-                    {   $DN = $Matches[1]
+                    {   $DN = ([System.Web.HttpUtility]::HtmlDecode($Matches[1]))
                         If ($Data[$DN].URL)
                         {   $Link = Set-URL $Data[$DN].URL
                             $Line = $Line.Replace("[link]$DN","<a href=""$Link"" TITLE=""Home Page"" target=""_blank"">Home Page</a>")
